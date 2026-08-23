@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth-store';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -19,7 +19,7 @@ const Login = () => {
       const res = await authService.login(username, password);
       const roleMap: { [key: number]: string } = { 0: 'SuperAdmin', 1: 'HR', 2: 'Employee' };
       const roleName = roleMap[res.data.role];
-      login(res.data.token, roleName, res.data.userId);
+      login(res.data.token, roleName, res.data.userId, res.data.employeeId);
       if (roleName === 'SuperAdmin') navigate('/admin-dashboard');
       else if (roleName === 'HR') navigate('/hr-dashboard');
       else navigate('/employee-dashboard');

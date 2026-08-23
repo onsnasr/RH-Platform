@@ -1,57 +1,77 @@
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import DashboardLayout from '../components/DashboardLayout';
+import { employeeService, departmentService, leaveService } from '../services/api';
 
-const navItems = [
-  { label: 'Dashboard', path: '/admin-dashboard' },
-  { label: 'Manage HR Accounts', path: '/admin/manage-hr' },
-  { label: 'Employees', path: '/admin/employees' },
-  { label: 'Departments', path: '/admin/departments' },
-  { label: 'Audit Logs', path: '/admin/audit-logs' },
-  { label: 'System Settings', path: '/admin/settings' },
-];
+interface LeaveRequest {
+  id: string;
+  employeeId: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: number | string;
+}
+
+const STATUS_LABEL: Record<string, string> = { '0': 'Pending', '1': 'Approved', '2': 'Rejected' };
 
 const AdminDashboard = () => {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [employeeCount, setEmployeeCount] = useState(0);
+  const [departmentCount, setDepartmentCount] = useState(0);
+  const [pendingLeaves, setPendingLeaves] = useState<LeaveRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [employeesRes, departmentsRes, leavesRes] = await Promise.all([
+          employeeService.getAll(),
+          departmentService.getAll(),
+          leaveService.getAll(),
+        ]);
+        setEmployeeCount(employeesRes.data.length);
+        setDepartmentCount(departmentsRes.data.length);
+        setPendingLeaves(leavesRes.data.filter((l: LeaveRequest) => String(l.status) === '0'));
+      } catch {
+        setError('Could not load dashboard data. Is the backend running?');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
-      <div className="w-64 bg-gray-900 text-white flex flex-col">
-        <div className="p-6 border-b border-gray-700">
-          <h1 className="text-xl font-bold">HR Platform</h1>
-          <p className="text-gray-400 text-sm mt-1">Super Admin</p>
-        </div>
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => (
-            <a key={item.path} href="#"
-              onClick={(e) => { e.preventDefault(); navigate(item.path); }}
-              className={`flex items-center px-4 py-2 rounded ${location.pathname === item.path ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
-              {item.label}
-            </a>
-          ))}
-        </nav>
-        <div className="p-4 border-t border-gray-700">
-          <button onClick={() => { logout(); navigate('/login'); }} className="w-full px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded text-left">Logout</button>
-        </div>
+    <DashboardLayout title="Super Admin Dashboard" subtitle="Full system overview">
+      {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>}
+      <div className="grid grid-cols-4 gap-6 mb-8">
+        {[
+          ['Total Employees', loading ? '—' : employeeCount],
+          ['Departments', loading ? '—' : departmentCount],
+          ['Pending Leaves', loading ? '—' : pendingLeaves.length],
+        ].map(([label, val]) => (
+          <div key={label} className="bg-white rounded-lg p-6 shadow">
+            <p className="text-sm text-gray-500">{label}</p>
+            <p className="text-3xl font-bold text-gray-800 mt-1">{val}</p>
+          </div>
+        ))}
       </div>
-      <div className="flex-1 p-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-1">Super Admin Dashboard</h2>
-        <p className="text-gray-500 mb-6">Full system overview</p>
-        <div className="grid grid-cols-4 gap-6 mb-8">
-          {[['Total Employees', '0'], ['HR Accounts', '0'], ['Departments', '0'], ['Pending Leaves', '0']].map(([label, val]) => (
-            <div key={label} className="bg-white rounded-lg p-6 shadow">
-              <p className="text-sm text-gray-500">{label}</p>
-              <p className="text-3xl font-bold text-gray-800 mt-1">{val}</p>
-            </div>
-          ))}
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
-          <p className="text-gray-400 text-sm">No recent activity yet.</p>
-        </div>
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Pending Leave Requests</h3>
+        {pendingLeaves.length === 0 ? (
+          <p className="text-gray-400 text-sm">No pending leave requests.</p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {pendingLeaves.map((l) => (
+              <li key={l.id} className="py-2 text-sm text-gray-700 flex justify-between">
+                <span>Employee {l.employeeId}</span>
+                <span className="text-gray-400">{l.startDate?.slice(0, 10)} → {l.endDate?.slice(0, 10)}</span>
+                <span className="text-yellow-600">{STATUS_LABEL[String(l.status)] ?? 'Pending'}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

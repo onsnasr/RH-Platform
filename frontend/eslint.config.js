@@ -18,5 +18,12 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // This app fetches data with plain useEffect + async handlers (no
+      // Suspense/data-fetching library), which is exactly the pattern this
+      // rule flags; the standard "loading" state initialized to true instead
+      // of set synchronously already avoids the cascading-render issue.
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])

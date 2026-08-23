@@ -19,6 +19,7 @@ export const authService = {
     api.post('/auth/login', { username, password }),
   register: (data: object) =>
     api.post('/auth/register', data),
+  getUsers: () => api.get('/auth/users'),
 };
 
 export const employeeService = {
@@ -42,12 +43,15 @@ export const leaveService = {
   submit: (data: object) => api.post('/leaverequest', data),
   approve: (id: string) => api.put(`/leaverequest/${id}/approve`, {}),
   reject: (id: string) => api.put(`/leaverequest/${id}/reject`, {}),
+  delete: (id: string) => api.delete(`/leaverequest/${id}`),
 };
 
 export const payrollService = {
   getAll: () => api.get('/payroll'),
   getByEmployee: (id: string) => api.get(`/payroll/employee/${id}`),
   generate: (data: object) => api.post('/payroll', data),
+  update: (id: string, data: object) => api.put(`/payroll/${id}`, data),
+  delete: (id: string) => api.delete(`/payroll/${id}`),
 };
 
 export default api;

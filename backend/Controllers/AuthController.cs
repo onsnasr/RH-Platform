@@ -1,4 +1,5 @@
 using MongoDB.Driver;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using RHPlatform.API.Models;
@@ -49,10 +50,11 @@ namespace RHPlatform.API.Controllers
                 return Unauthorized("Invalid credentials");
 
             var token = GenerateToken(user);
-            return Ok(new { token, role = user.Role, userId = user.Id });
+            return Ok(new { token, role = user.Role, userId = user.Id, employeeId = user.EmployeeId });
         }
 
         [HttpGet("users")]
+        [Authorize(Roles = "SuperAdmin,HR")]
         public async Task<IActionResult> GetUsers()
         {
             var users = await _db.Users.Find(_ => true).ToListAsync();
